@@ -1,0 +1,8 @@
+let Numbers { 1 2 3 4 }
+
+for a b in Numbers
+case Swap (a b) (b a) -> Swap
+
+case Swap & & -> Halt
+
+trace Swap { (1 2) (2 3) (3 4) & }
