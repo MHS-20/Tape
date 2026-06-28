@@ -1,0 +1,2 @@
+tests/unused-vars.tape:4:1: ERROR: not all variables in the scope are used in the input of the case
+tests/unused-vars.tape:3:7: NOTE: unused variable b

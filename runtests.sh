@@ -1,13 +1,8 @@
 #!/usr/bin/env bash
 # Test runner for tape interpreter
-# Usage: ./runtests.sh [replay|record]
-#   replay - run tests and compare against expected output (default)
-#   record - run tests and save output as expected
-
 set -euo pipefail
 
 MODE="${1:-replay}"
-TAPE_CMD="sbt --no-colors --batch 'runMain tape.Main'"
 PASS=0
 FAIL=0
 TOTAL=0
@@ -15,36 +10,43 @@ TOTAL=0
 expect_dir="tests/expected"
 mkdir -p "$expect_dir"
 
+get_output() {
+    local subcmd="$1"
+    local file="$2"
+    sbt --no-colors --batch "run $subcmd $file" 2>&1 | \
+        sed -n '/^\[info\] running tape\.Main/,/^\[success\]/p' | \
+        grep -v '^\[info\] running' | \
+        grep -v '^\[success\]' | \
+        grep -v '^$'
+    return ${PIPESTATUS[0]}
+}
+
 run_test() {
     local name="$1"
-    shift
-    local cmd=("$@")
+    local subcmd="$2"
+    local file="$3"
     TOTAL=$((TOTAL + 1))
     local expect_file="$expect_dir/$name.out"
     
     echo -n "[$TOTAL] $name ... "
     
-    local output
-    if output=$("${cmd[@]}" 2>&1); then
-        local exitcode=0
-    else
-        local exitcode=$?
-    fi
+    local output exitcode
+    output=$(get_output "$subcmd" "$file") || exitcode=$?
     
     if [ "$MODE" = "record" ]; then
-        echo "$output" > "$expect_file"
+        printf '%s\n' "$output" > "$expect_file"
         echo "RECORDED"
         return
     fi
     
     if [ -f "$expect_file" ]; then
-        if echo "$output" | diff -q - "$expect_file" > /dev/null 2>&1; then
+        if diff -q <(printf '%s\n' "$output") "$expect_file" > /dev/null 2>&1; then
             echo "PASS"
             PASS=$((PASS + 1))
         else
             echo "FAIL"
             echo "  diff:"
-            echo "$output" | diff -u "$expect_file" - | sed 's/^/  /'
+            diff -u "$expect_file" <(printf '%s\n' "$output") | sed 's/^/  /'
             FAIL=$((FAIL + 1))
         fi
     else
@@ -54,8 +56,9 @@ run_test() {
 
 trap 'echo "---"; echo "Results: $PASS/$TOTAL passed, $FAIL failed"' EXIT
 
-# Run tests
-run_test "01-inc"      $TAPE_CMD "run examples/01-inc.tape"
-run_test "02-pairs"    $TAPE_CMD "run examples/02-pairs.tape"
-run_test "03-magical"  $TAPE_CMD "run examples/03-magical.tape"
-run_test "04-eval"     $TAPE_CMD "run examples/04-eval.tape"
+run_test "01-inc"         "run" "examples/01-inc.tape"
+run_test "02-pairs"       "run" "examples/02-pairs.tape"
+run_test "03-magical"     "run" "examples/03-magical.tape"
+run_test "04-eval"        "run" "examples/04-eval.tape"
+run_test "unused-vars"    "run" "tests/unused-vars.tape"
+run_test "01-inc-expand"  "expand" "examples/01-inc.tape"
