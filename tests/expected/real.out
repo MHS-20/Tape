@@ -1,0 +1,9 @@
+tests/real.tape:1:1: trace
+Sum_Real: 3.4 3.5 .
+          ^^^
+(Sum_Real 3.4): . 3.5 .
+                  ^^^
+(Sum_Real 3.4 3.5): . . .
+                        ^
+Halt: . . 6.9
+          ^^^
