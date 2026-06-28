@@ -1,0 +1,6 @@
+for a b in Integer
+case Swap (a b) (b a) -> Swap
+
+case Swap & & -> Halt
+
+trace Swap { (69 420) (1337 7331) (42 37) & }
